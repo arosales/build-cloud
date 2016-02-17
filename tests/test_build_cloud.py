@@ -27,20 +27,24 @@ class TestCloudBuild(TestCase):
 
     def test_parse_args(self):
         args = parse_args(['juju-env'])
-        expected = Namespace(docker_net=None, env='juju-env',
+        expected = Namespace(bundle_args=None, config=None, docker_net=None,
+                             env='juju-env', job_id=None,
                              juju_home='/tmp/home/cloud-city', verbose=0)
         self.assertEqual(args, expected)
 
     def test_parse_args_lxc(self):
         args = parse_args(['charm-testing-lxc'])
-        expected = Namespace(docker_net='--net=host', env='charm-testing-lxc',
-                             juju_home='/tmp/home/cloud-city', verbose=0)
+        expected = Namespace(bundle_args=None, config=None,
+                             docker_net='--net=host', env='charm-testing-lxc',
+                             job_id=None, juju_home='/tmp/home/cloud-city',
+                             verbose=0)
         self.assertEqual(args, expected)
 
     def test_parse_args_maas(self):
         args = parse_args(['charm-testing-power8-maas'])
-        expected = Namespace(docker_net='--net=host',
-                             env='charm-testing-power8-maas',
+        expected = Namespace(bundle_args=None, config=None,
+                             docker_net='--net=host',
+                             env='charm-testing-power8-maas', job_id=None,
                              juju_home='/tmp/home/cloud-city', verbose=0)
         self.assertEqual(args, expected)
 
