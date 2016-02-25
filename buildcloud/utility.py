@@ -12,22 +12,11 @@ from tempfile import mkdtemp
 
 @contextmanager
 def temp_dir(parent=None):
-    directory = mkdtemp(dir=parent)
+    directory = mkdtemp(dir=parent, prefix='cwr_tst_')
     try:
         yield directory
     finally:
         rmtree(directory)
-
-
-def s3_cmd(params, drop_output=False):
-    s3cfg_path = os.path.join(
-        os.environ['HOME'], 'cloud-city/juju-qa.s3cfg')
-    command = ['s3cmd', '-c', s3cfg_path, '--no-progress'] + params
-    if drop_output:
-        return subprocess.check_call(
-            command, stdout=open('/dev/null', 'w'))
-    else:
-        return subprocess.check_output(command)
 
 
 def configure_logging(log_level):
@@ -36,19 +25,13 @@ def configure_logging(log_level):
         datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def ensure_dir(path):
+def ensure_dir(path, parent=None):
+    path = os.path.join(parent, path) if parent else path
     try:
         os.mkdir(path)
+        return path
     except OSError as e:
         if e.errno != errno.EEXIST:
-            raise
-
-
-def ensure_deleted(path):
-    try:
-        os.unlink(path)
-    except OSError as e:
-        if e.errno != errno.ENOENT:
             raise
 
 
@@ -56,16 +39,18 @@ def run_command(command, verbose=False):
     """Execute a command and maybe print the output."""
     if isinstance(command, str):
         command = command.split()
-    if verbose:
-        print_now('Executing: {}'.format(command))
-    output = subprocess.check_output(command)
-    if verbose:
-        print_now(output)
-
-
-def juju_run(command):
-    command = command.split() if isinstance(command, str) else command
-    return run_command(['juju'] + command)
+    print_now('Executing: {}'.format(command))
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+    while proc.poll() is None:
+        status = proc.stdout.readline()
+        if status:
+            print_now(status)
+    if proc.returncode != 0 and proc.returncode is not None:
+        output, error = proc.communicate()
+        print_now("ERROR: run_command failed: {}".format(error))
+        e = subprocess.CalledProcessError(proc.returncode, command, error)
+        e.stderr = error
+        raise e
 
 
 def print_now(string):

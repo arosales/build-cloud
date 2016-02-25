@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 
+from argparse import ArgumentParser
+from contextlib import contextmanager
 from collections import namedtuple
 import logging
 import os
-import subprocess
-from argparse import ArgumentParser
+import shutil
 
 from buildcloud.utility import (
     configure_logging,
     ensure_dir,
     get_juju_home,
-    juju_run,
     run_command,
     temp_dir,
 )
@@ -19,14 +19,9 @@ from buildcloud.utility import (
 def parse_args(argv=None):
     parser = ArgumentParser()
     parser.add_argument(
-        'env', help='The juju environment to use.')
+        'model', nargs='+', help='Name of models to use')
     parser.add_argument(
-        'test-plan', help='File path to test plan.')
-    parser.add_argument(
-        '--url',
-        help='The url of the charm or bundle to test. The location must be '
-             'public.',
-        default=os.environ.get('url'))
+        'test_plan', help='File path to test plan.')
     parser.add_argument(
         '--bundle-args',
         help='Name of bundle file to deploy, if url points to a bundle '
@@ -36,83 +31,126 @@ def parse_args(argv=None):
         '--verbose', action='count', default=0)
     parser.add_argument(
         '--juju-home', help='Juju home directory.', default=get_juju_home())
-    parser.add_argument(
-        '--docker-net', help='Docker network.')
-    parser.add_argument(
-        '--job_id', default=os.environ.get('job_id'))
-    parser.add_argument(
-        '--config', help='Description of the configuration.',
-        default=os.environ.get('config'))
-    parser.add_argument(
-            '--bzr_user',
-            default=os.environ.get('bzr_user'))
-    parser.add_argument(
-            '--bundle_args',
-            help='Name of bundle file to deploy, if $url points to a bundle '
-                 'containing multiple bundle files.',
-            default=os.environ.get('bundle'))
     args = parser.parse_args(argv)
-    if (args.docker_net is None and (
-            args.env == "charm-testing-lxc" or
-            args.env == "charm-testing-power8-maas")):
-        args.docker_net = '--net=host'
     return args
 
 
-def clean_up(args):
+@contextmanager
+def temp_juju_home(juju_home):
+    org_juju_home = os.environ.get('JUJU_HOME')
+    os.environ["JUJU_HOME"] = juju_home
     try:
-        juju_run('destroy-environment --force {}'.format(args.env))
-    except subprocess.CalledProcessError:
-        pass
+        yield
+    finally:
+        os.environ['JUJU_HOME'] = org_juju_home if org_juju_home else ''
 
 
-def setup_env(root):
-    tmp_juju_home = os.path.join(root, 'tmp_juju_home')
-    ensure_dir(tmp_juju_home)
-    #todo: copy juju_home to tmp_juju_home
-    juju_repository = os.path.join(root, 'juju_repository')
-    ensure_dir(juju_repository)
-    log_dest = os.path.join(root, 'log_dest')
-    tmp = os.path.join(root, 'tmp')
-    ensure_dir(tmp)
-    charm_box = 'jujusolution/charmbox:latest'
-    output = os.path.join(tmp, 'result.json')
-    Env = namedtuple('Env', ['tmp_juju_home', 'juju_repository', 'log_dest',
-                             'tmp' 'output', 'charm_box'])
-    env = Env(tmp_juju_home=tmp_juju_home, juju_repository=juju_repository,
-              log_dest=log_dest, tmp=tmp, output=output, charm_box=charm_box)
-    return env
+@contextmanager
+def env(args):
+    with temp_dir() as root:
+        tmp_juju_home = os.path.join(root, 'tmp_juju_home')
+        shutil.copytree(args.juju_home, tmp_juju_home,
+                        ignore=shutil.ignore_patterns('environments'))
+
+        juju_repository = ensure_dir('juju_repository', parent=root)
+        test_results = ensure_dir('results', parent=root)
+
+        tmp = ensure_dir('tmp', parent=root)
+        ssh_dir = os.path.join(tmp, 'ssh')
+        os.mkdir(ssh_dir)
+        shutil.copyfile(os.path.join(tmp_juju_home, 'staging-juju-rsa'),
+                        os.path.join(ssh_dir, 'id_rsa'))
+        ssh_path = os.path.join(tmp, 'ssh')
+
+        Host = namedtuple(
+            'Host',
+            ['tmp_juju_home', 'juju_repository', 'test_results',
+             'tmp', 'ssh_path'])
+        host = Host(
+            tmp_juju_home=tmp_juju_home, juju_repository=juju_repository,
+            test_results=test_results, tmp=tmp, ssh_path=ssh_path)
+        Container = namedtuple(
+            'Container',
+            ['user', 'name', 'home', 'ssh_home', 'juju_home', 'test_results',
+             'juju_repository', 'test_plans'])
+        container_user = 'ubuntu'
+        container_home = os.path.join('/home', container_user)
+        container_juju_home = os.path.join(container_home, '.juju')
+        container_ssh_home = os.path.join(container_home, '.ssh')
+        container_test_results = os.path.join(container_home, 'results')
+        container_repository = os.path.join(container_home, 'charm-repo')
+        container_test_plans = os.path.join(container_home, 'test_plans')
+        container = Container(user=container_user,
+                              name='seman/cwrbox',
+                              home=container_home,
+                              ssh_home=container_ssh_home,
+                              juju_home=container_juju_home,
+                              test_results=container_test_results,
+                              juju_repository=container_repository,
+                              test_plans=container_test_plans)
+        yield host, container
 
 
-def run_docker(args, env):
-    run_command('sudo docker pull {}'.format(env.charm_box))
-    options = (
-        '--rm {}  '
-        '-u ubuntu '
-        '-e "Home=/home/ubuntu" '
-        '-e "JUJU_HOME=/home/ubuntu/.juju" '
-        '-w "/home/ubuntu" '
-        '-v {}:/home/ubuntu/.juju '
-        '-v {}/.deployer-store-cache:/home/ubuntu/.juju/.deployer-store-cache '
-        '-v {}:/home/ubuntu/charm-repo '
-        '-v {}:{} '
-        '-v {}/ssh:/home/ubuntu/.ssh '
-        '-t {} '.format(args.docker_net, env.tmp_juju_home, env.tmp,
-                        env.juju_repository, env.tmp, env.tmp. env.charm_box))
-    run = ('  sh -c "bzr whoami \'{}\' && '
-          'sudo cwr -F -e {} -t {} -l DEBUG -v -r json -o {} {}"'
-           ''.format(args.bzr_user, args.env, args.url, env.output,
-                     args.bundle_args))
-    cmd = 'sudo docker run {}'.format(options)
+@contextmanager
+def juju(args):
+    run_command('juju --version')
+    for model in args.model:
+        run_command(
+            'juju bootstrap --show-log -e {} --constraints mem=4G'.format(
+                model))
+        run_command('juju set-constraints -e {} mem=2G'.format(model))
+    try:
+        yield
+    finally:
+        for model in args.model:
+            run_command(
+                'juju destroy-environment --force --yes {}'.format(model))
+
+
+def run_container(host, container, args):
+    logging.debug("Host data: ", host)
+    logging.debug("Container data: ", container)
+    run_command('sudo docker pull {}'.format(container.name))
+    container_options = (
+        '--rm '
+        '-u {} '
+        '-e Home={} '
+        '-e JUJU_HOME={} '
+        '-w {} '
+        '-v {}:{} '   # Test result location
+        '-v {}:{} '   # Temp Juju home
+        '-v {}/.deployer-store-cache:{}.deployer-store-cache '
+        '-v {}:{} '   # Repository location
+        '-v {}:{} '   # Temp location.
+        '-v {}:{} '   # Test plan
+        '-t {} '.format(container.user,
+                        container.home,
+                        container.juju_home,
+                        container.home,
+                        host.test_results, container.test_results,
+                        host.tmp_juju_home, container.juju_home,
+                        host.tmp, container.juju_home,
+                        host.juju_repository, container.juju_repository,
+                        host.tmp, host.tmp,
+                        os.path.dirname(args.test_plan), container.test_plans,
+                        container.name))
+    test_plan = os.path.join(
+        container.test_plans, os.path.basename(args.test_plan))
+    shell_options = (
+        'cwr -F -l DEBUG -v {} {}'.format(' '.join(args.model), test_plan))
+    command = ('sudo docker run {} sh -c'.format(
+               container_options).split() + [shell_options])
+    run_command(command)
 
 
 def main():
     args = parse_args()
     log_level = max(logging.WARN - args.verbose * 10, logging.DEBUG)
     configure_logging(log_level)
-    with temp_dir() as root:
-        env = setup_env(root)
-        run_docker(args, env)
+    with env(args) as (host, container):
+        with temp_juju_home(host.tmp_juju_home):
+            with juju(args):
+                run_container(host, container, args)
 
 
 if __name__ == '__main__':
