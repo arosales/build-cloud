@@ -138,10 +138,11 @@ def run_container(host, container, args):
     test_plan = os.path.join(
         container.test_plans, os.path.basename(args.test_plan))
     shell_options = (
-        'cwr -F -l DEBUG -v {} {}'.format(' '.join(args.model), test_plan))
+        'sudo cwr -F -l DEBUG -v {} {}'.format(' '.join(args.model), test_plan))
     command = ('sudo docker run {} sh -c'.format(
                container_options).split() + [shell_options])
     run_command(command)
+    run_command('sudo chown -R jenkins:jenkins {}'.format(container.test_results))
 
 
 def main():
