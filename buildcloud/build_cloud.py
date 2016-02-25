@@ -65,10 +65,10 @@ def env(args):
         Host = namedtuple(
             'Host',
             ['tmp_juju_home', 'juju_repository', 'test_results',
-             'tmp', 'ssh_path'])
+             'tmp', 'ssh_path', 'root'])
         host = Host(
             tmp_juju_home=tmp_juju_home, juju_repository=juju_repository,
-            test_results=test_results, tmp=tmp, ssh_path=ssh_path)
+            test_results=test_results, tmp=tmp, ssh_path=ssh_path, root=root)
         Container = namedtuple(
             'Container',
             ['user', 'name', 'home', 'ssh_home', 'juju_home', 'test_results',
@@ -142,7 +142,7 @@ def run_container(host, container, args):
     command = ('sudo docker run {} sh -c'.format(
                container_options).split() + [shell_options])
     run_command(command)
-    run_command('sudo chown -R jenkins:jenkins `dirname {}`'.format(host.test_results))
+    run_command('sudo chown -R jenkins:jenkins {}'.format(host.root))
 
 
 def main():
