@@ -92,8 +92,9 @@ def env(args):
 
 
 @contextmanager
-def juju(args):
+def juju(host, args):
     run_command('juju --version')
+    logging.info("Juju home is set to {}".format(host.tmp_juju_home))
     for model in args.model:
         run_command(
             'juju bootstrap --show-log -e {} --constraints mem=4G'.format(
@@ -149,7 +150,7 @@ def main():
     configure_logging(log_level)
     with env(args) as (host, container):
         with temp_juju_home(host.tmp_juju_home):
-            with juju(args):
+            with juju(host, args):
                 run_container(host, container, args)
 
 
