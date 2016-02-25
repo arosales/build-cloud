@@ -142,7 +142,7 @@ def run_container(host, container, args):
     command = ('sudo docker run {} sh -c'.format(
                container_options).split() + [shell_options])
     run_command(command)
-    run_command('sudo chown -R jenkins:jenkins {}'.format(container.test_results))
+    run_command('sudo chown -R jenkins:jenkins {}'.format(host.test_results))
 
 
 def main():
