@@ -68,7 +68,7 @@ def get_juju_home():
         home = os.path.join(os.environ.get('HOME'), 'cloud-city')
     return home
 
-def copytree_force(src, dst):
+def copytree_force(src, dst, ignore=None):
     if os.path.exists(dst):
         rmtree(dst)
-    copytree(src, dst)
+    copytree(src, dst, ignore=ignore)
