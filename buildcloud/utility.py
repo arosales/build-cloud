@@ -4,7 +4,10 @@ from contextlib import contextmanager
 import errno
 import logging
 import os
-from shutil import rmtree
+from shutil import (
+    copytree,
+    rmtree,
+)
 import subprocess
 import sys
 from tempfile import mkdtemp
@@ -39,7 +42,8 @@ def run_command(command, verbose=False):
     """Execute a command and maybe print the output."""
     if isinstance(command, str):
         command = command.split()
-    print_now('Executing: {}'.format(command))
+    if verbose:
+        print_now('Executing: {}'.format(command))
     proc = subprocess.Popen(command, stdout=subprocess.PIPE)
     while proc.poll() is None:
         status = proc.stdout.readline()
@@ -63,3 +67,8 @@ def get_juju_home():
     if home is None:
         home = os.path.join(os.environ.get('HOME'), 'cloud-city')
     return home
+
+def copytree_force(src, dst):
+    if os.path.exists(dst):
+        rmtree(dst)
+    copytree(src, dst)

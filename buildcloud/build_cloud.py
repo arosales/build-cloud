@@ -9,6 +9,7 @@ import shutil
 
 from buildcloud.utility import (
     configure_logging,
+    copytree_force,
     ensure_dir,
     get_juju_home,
     run_command,
@@ -31,6 +32,7 @@ def parse_args(argv=None):
         '--verbose', action='count', default=0)
     parser.add_argument(
         '--juju-home', help='Juju home directory.', default=get_juju_home())
+    parser.add_argument('--log_dir', help='The directory to dump logs to.')
     args = parser.parse_args(argv)
     return args
 
@@ -145,6 +147,9 @@ def run_container(host, container, args):
     run_command(command)
     run_command('sudo chown -R {}:{} {}'.format(
         os.getegid(), os.getpgrp(), host.root))
+    # Copy logs
+    if args.log_dir:
+        copytree_force(host.test_results, args.log_dir)
 
 
 def main():

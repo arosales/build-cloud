@@ -25,7 +25,7 @@ class TestCloudBuild(TestCase):
     def test_parse_args(self):
         args = parse_args(['cwr-model', 'test-plan'])
         expected = Namespace(bundle_args=None,
-                             juju_home='/tmp/home/cloud-city',
+                             juju_home='/tmp/home/cloud-city', log_dir=None,
                              model=['cwr-model'], test_plan='test-plan',
                              verbose=0)
         self.assertEqual(args, expected)
