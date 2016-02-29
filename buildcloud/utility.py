@@ -38,7 +38,7 @@ def ensure_dir(path, parent=None):
             raise
 
 
-def run_command(command, verbose=False):
+def run_command(command, verbose=True):
     """Execute a command and maybe print the output."""
     if isinstance(command, str):
         command = command.split()
