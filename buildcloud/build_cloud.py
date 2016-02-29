@@ -32,7 +32,7 @@ def parse_args(argv=None):
         '--verbose', action='count', default=0)
     parser.add_argument(
         '--juju-home', help='Juju home directory.', default=get_juju_home())
-    parser.add_argument('--log_dir', help='The directory to dump logs to.')
+    parser.add_argument('--log-dir', help='The directory to dump logs to.')
     args = parser.parse_args(argv)
     return args
 
