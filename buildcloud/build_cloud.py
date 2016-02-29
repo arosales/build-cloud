@@ -145,8 +145,11 @@ def run_container(host, container, args):
     command = ('sudo docker run {} sh -c'.format(
         container_options).split() + [shell_options])
     run_command(command)
-    run_command('sudo chown -R {}:{} {}'.format(
-        os.getegid(), os.getpgrp(), host.root))
+    if os.getegid() == 111:
+        run_command('sudo chown -R jenkins:jenkins {}'.format(host.root))
+    else:
+        run_command('sudo chown -R {}:{} {}'.format(
+            os.getegid(), os.getpgrp(), host.root))
     # Copy logs
     if args.log_dir:
         copytree_force(host.test_results, args.log_dir)
