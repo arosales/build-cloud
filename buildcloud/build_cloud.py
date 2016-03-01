@@ -149,10 +149,11 @@ def run_container(host, container, args):
         container.test_plans, os.path.basename(args.test_plan))
     shell_options = (
         'sudo cwr -F -l DEBUG -v {} {}'.format(
-            ' '.join(args.model), test_plan))
+            ' '.join(host.models), test_plan))
     command = ('sudo docker run {} sh -c'.format(
         container_options).split() + [shell_options])
     run_command(command)
+    print("User id: {} Group id: {}".format(os.getegid(), os.getpgrp()))
     if os.getegid() == 111:
         run_command('sudo chown -R jenkins:jenkins {}'.format(host.root))
     else:
