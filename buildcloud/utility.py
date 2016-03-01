@@ -79,9 +79,11 @@ def copytree_force(src, dst, ignore=None):
 def rename_env(from_env, to_env, env_path):
     with open(env_path, 'r') as f:
         env = yaml.load(f)
-    env['environments'][to_env + from_env] = env['environments'].pop(from_env)
+    new_env = to_env + from_env
+    env['environments'][new_env] = env['environments'].pop(from_env)
     with open(env_path, 'w') as f:
-        env = yaml.dump(env, f, indent=4, default_flow_style=False)
+        yaml.dump(env, f, indent=4, default_flow_style=False)
+    return new_env
 
 
 
