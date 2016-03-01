@@ -11,6 +11,7 @@ from shutil import (
 import subprocess
 import sys
 from tempfile import mkdtemp
+import yaml
 
 
 @contextmanager
@@ -68,7 +69,19 @@ def get_juju_home():
         home = os.path.join(os.environ.get('HOME'), 'cloud-city')
     return home
 
+
 def copytree_force(src, dst, ignore=None):
     if os.path.exists(dst):
         rmtree(dst)
     copytree(src, dst, ignore=ignore)
+
+
+def rename_env(from_env, to_env, env_path):
+    with open(env_path, 'r') as f:
+        env = yaml.load(f)
+    env['environments'][to_env + from_env] = env['environments'].pop(from_env)
+    with open(env_path, 'w') as f:
+        env = yaml.dump(env, f, indent=4, default_flow_style=False)
+
+
+

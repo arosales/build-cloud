@@ -12,6 +12,7 @@ from buildcloud.utility import (
     copytree_force,
     ensure_dir,
     get_juju_home,
+    rename_env,
     run_command,
     temp_dir,
 )
@@ -97,15 +98,19 @@ def env(args):
 def juju(host, args):
     run_command('juju --version')
     logging.info("Juju home is set to {}".format(host.tmp_juju_home))
+    bootstrapped_models = []
     for model in args.model:
+        new_model = rename_env(model, 'cwr-', os.path.join(
+                host.tmp_juju_home, 'environments.yaml'))
         run_command(
             'juju bootstrap --show-log -e {} --constraints mem=4G'.format(
-                model))
-        run_command('juju set-constraints -e {} mem=2G'.format(model))
+                new_model))
+        run_command('juju set-constraints -e {} mem=2G'.format(new_model))
+        bootstrapped_models.append(new_model)
     try:
         yield
     finally:
-        for model in args.model:
+        for model in bootstrapped_models:
             run_command(
                 'juju destroy-environment --force --yes {}'.format(model))
 

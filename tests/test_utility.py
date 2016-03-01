@@ -3,9 +3,11 @@ import subprocess
 from unittest import TestCase
 
 from mock import patch
+import yaml
 
 from buildcloud.utility import (
     copytree_force,
+    rename_env,
     run_command,
     temp_dir,
 )
@@ -68,6 +70,22 @@ class TestUtility(TestCase):
                 os.mkdir(sub_dst_dir)
                 copytree_force(src, dst)
                 self.assertTrue(os.path.exists(sub_dst_dir))
+
+    def test_rename_env(self):
+        with temp_dir() as tmp_dir:
+            env = {'environments': {'old-env': {'access-key': 'my_access_key'}}}
+            file_path = os.path.join(tmp_dir, 't.yaml')
+            with open(file_path, 'w') as f:
+                yaml.dump(env, f, default_flow_style=True)
+            rename_env('old-env', 'cwr-', file_path)
+            with open(file_path) as f:
+                new_env = yaml.load(f)
+            expected_env = {'environments': {'cwr-old-env': {
+                'access-key': 'my_access_key'}}}
+            self.assertEqual(new_env, expected_env)
+
+
+
 
 
 class FakeProc:
