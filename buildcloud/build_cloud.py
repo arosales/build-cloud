@@ -65,13 +65,20 @@ def env(args):
                         os.path.join(ssh_dir, 'id_rsa'))
         ssh_path = os.path.join(tmp, 'ssh')
 
+        new_names = []
+        for model in args.model:
+            name = rename_env(model, 'cwr-', os.path.join(
+                    tmp_juju_home, 'environments.yaml'))
+            new_names.append(name)
+
         Host = namedtuple(
             'Host',
             ['tmp_juju_home', 'juju_repository', 'test_results',
-             'tmp', 'ssh_path', 'root'])
+             'tmp', 'ssh_path', 'root', 'models'])
         host = Host(
             tmp_juju_home=tmp_juju_home, juju_repository=juju_repository,
-            test_results=test_results, tmp=tmp, ssh_path=ssh_path, root=root)
+            test_results=test_results, tmp=tmp, ssh_path=ssh_path, root=root,
+            models=new_names)
         Container = namedtuple(
             'Container',
             ['user', 'name', 'home', 'ssh_home', 'juju_home', 'test_results',
@@ -98,19 +105,15 @@ def env(args):
 def juju(host, args):
     run_command('juju --version')
     logging.info("Juju home is set to {}".format(host.tmp_juju_home))
-    bootstrapped_models = []
-    for model in args.model:
-        new_model = rename_env(model, 'cwr-', os.path.join(
-                host.tmp_juju_home, 'environments.yaml'))
+    for model in host.models:
         run_command(
             'juju bootstrap --show-log -e {} --constraints mem=4G'.format(
-                new_model))
-        run_command('juju set-constraints -e {} mem=2G'.format(new_model))
-        bootstrapped_models.append(new_model)
+                model))
+        run_command('juju set-constraints -e {} mem=2G'.format(model))
     try:
         yield
     finally:
-        for model in bootstrapped_models:
+        for model in host.models:
             run_command(
                 'juju destroy-environment --force --yes {}'.format(model))
 
