@@ -73,7 +73,8 @@ class TestUtility(TestCase):
 
     def test_rename_env(self):
         with temp_dir() as tmp_dir:
-            env = {'environments': {'old-env': {'access-key': 'my_access_key'}}}
+            env = {'environments': {
+                   'old-env': {'access-key': 'my_access_key'}}}
             file_path = os.path.join(tmp_dir, 't.yaml')
             with open(file_path, 'w') as f:
                 yaml.dump(env, f, default_flow_style=True)
@@ -83,9 +84,6 @@ class TestUtility(TestCase):
             expected_env = {'environments': {'cwr-old-env': {
                 'access-key': 'my_access_key'}}}
             self.assertEqual(new_env, expected_env)
-
-
-
 
 
 class FakeProc:

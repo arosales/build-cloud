@@ -68,7 +68,7 @@ def env(args):
         new_names = []
         for model in args.model:
             name = rename_env(model, 'cwr-', os.path.join(
-                    tmp_juju_home, 'environments.yaml'))
+                tmp_juju_home, 'environments.yaml'))
             new_names.append(name)
 
         Host = namedtuple(
@@ -162,7 +162,7 @@ def run_container(host, container, args):
     # Copy logs
     if args.log_dir:
         copytree_force(host.test_results, args.log_dir,
-                       ignore=shutil.ignore_patterns('static'))
+                       ignore=shutil.ignore_patterns('static', '*.html'))
 
 
 def main():

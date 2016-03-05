@@ -84,6 +84,3 @@ def rename_env(from_env, to_env, env_path):
     with open(env_path, 'w') as f:
         yaml.dump(env, f, indent=4, default_flow_style=False)
     return new_env
-
-
-
