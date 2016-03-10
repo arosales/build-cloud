@@ -1,0 +1,5 @@
+bundle: bundle:realtime-syslog-analytics
+benchmark:
+    plugin:
+        terasort
+
