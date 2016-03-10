@@ -25,10 +25,9 @@ def parse_args(argv=None):
     parser.add_argument(
         'test_plan', help='File path to test plan.')
     parser.add_argument(
-        '--bundle-args',
+        '--bundle-file',
         help='Name of bundle file to deploy, if url points to a bundle '
-             'containing multiple bundle files.',
-        default=os.environ.get('bundle'))
+             'containing multiple bundle files.', default='')
     parser.add_argument(
         '--verbose', action='count', default=0)
     parser.add_argument(
@@ -147,9 +146,12 @@ def run_container(host, container, args):
                         container.name))
     test_plan = os.path.join(
         container.test_plans, os.path.basename(args.test_plan))
+    bundle_file = ''
+    if args.bundle_file:
+        bundle_file = '--bundle {}'.format(args.bundle_file)
     shell_options = (
-        'sudo cwr -F -l DEBUG -v {} {}'.format(
-            ' '.join(host.models), test_plan))
+        'sudo cwr -F -l DEBUG -v {} {} {}'.format(
+            bundle_file, ' '.join(host.models), test_plan))
     command = ('sudo docker run {} sh -c'.format(
         container_options).split() + [shell_options])
     run_command(command)

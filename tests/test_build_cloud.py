@@ -24,7 +24,7 @@ class TestCloudBuild(TestCase):
 
     def test_parse_args(self):
         args = parse_args(['cwr-model', 'test-plan'])
-        expected = Namespace(bundle_args=None,
+        expected = Namespace(bundle_file='',
                              juju_home='/tmp/home/cloud-city', log_dir=None,
                              model=['cwr-model'], test_plan='test-plan',
                              verbose=0)
