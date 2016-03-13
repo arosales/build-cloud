@@ -112,6 +112,11 @@ def juju(host, args):
     try:
         yield
     finally:
+        if os.getegid() == 111:
+            run_command('sudo chown -R jenkins:jenkins {}'.format(host.root))
+        else:
+            run_command('sudo chown -R {}:{} {}'.format(
+                os.getegid(), os.getpgrp(), host.root))
         for model in host.models:
             run_command(
                 'juju destroy-environment --force --yes {}'.format(model))
@@ -156,11 +161,6 @@ def run_container(host, container, args):
         container_options).split() + [shell_options])
     run_command(command)
     print("User id: {} Group id: {}".format(os.getegid(), os.getpgrp()))
-    if os.getegid() == 111:
-        run_command('sudo chown -R jenkins:jenkins {}'.format(host.root))
-    else:
-        run_command('sudo chown -R {}:{} {}'.format(
-            os.getegid(), os.getpgrp(), host.root))
     # Copy logs
     if args.log_dir:
         copytree_force(host.test_results, args.log_dir,
