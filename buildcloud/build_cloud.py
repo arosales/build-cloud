@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from collections import namedtuple
 import logging
 import os
+import subprocess
 import shutil
 
 from buildcloud.utility import (
@@ -104,12 +105,12 @@ def env(args):
 def juju(host, args):
     run_command('juju --version')
     logging.info("Juju home is set to {}".format(host.tmp_juju_home))
-    for model in host.models:
-        run_command(
-            'juju bootstrap --show-log -e {} --constraints mem=4G'.format(
-                model))
-        run_command('juju set-constraints -e {} mem=2G'.format(model))
     try:
+        for model in host.models:
+            run_command(
+                'juju bootstrap --show-log -e {} --constraints mem=4G'.format(
+                    model))
+            run_command('juju set-constraints -e {} mem=2G'.format(model))
         yield
     finally:
         if os.getegid() == 111:
@@ -117,9 +118,16 @@ def juju(host, args):
         else:
             run_command('sudo chown -R {}:{} {}'.format(
                 os.getegid(), os.getpgrp(), host.root))
+        error = None
         for model in host.models:
-            run_command(
-                'juju destroy-environment --force --yes {}'.format(model))
+            try:
+                run_command(
+                    'juju destroy-environment --force --yes {}'.format(model))
+            except subprocess.CalledProcessError as e:
+                error = e
+                logging.error("Error destory env failed: {}".format(model))
+        if error:
+            raise error
 
 
 def run_container(host, container, args):
