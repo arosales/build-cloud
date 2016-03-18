@@ -20,13 +20,19 @@ def parse_args(argv=None):
     parser.add_argument(
         '--password', default=os.environ.get('JENKINS_PASSWORD'))
     parser.add_argument(
+        '--cwr-test-token', default=os.environ.get('CWR_TEST_TOKEN'))
+    parser.add_argument(
         'controllers', nargs='+', help='List of controllers. ')
     parser.add_argument(
         '--test_plans', nargs='+',
         help='List of test plan files.  Instead of scheduling all the tests, '
              'this can be use to restrict the test plan files. If this is '
              'not set, all the test will be scheduled.')
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if not args.cwr_test_token:
+        parser.error("Please set the cwr-test Jenkins job token by "
+                     "exporting the CWR_TEST_TOKEN environment variable.")
+    return args
 
 
 def make_parameters(test_plan, args):

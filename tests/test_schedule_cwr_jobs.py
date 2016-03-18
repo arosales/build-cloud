@@ -27,6 +27,7 @@ class TestSchedule(TestCase):
             args = parse_args(['test_dir', 'default-aws', 'default-azure'])
             expected = Namespace(
                 controllers=['default-aws', 'default-azure'],
+                cwr_test_token='fake_pass',
                 password='bar',
                 test_plan_dir='test_dir', test_plans=None, user='foo')
             self.assertEqual(args, expected)
@@ -109,10 +110,13 @@ class TestSchedule(TestCase):
 def jenkins_env():
     user = os.environ.get('JENKINS_USER')
     password = os.environ.get('JENKINS_PASSWORD')
+    cwr_token = os.environ.get('CWR_TEST_TOKEN')
     os.environ["JENKINS_USER"] = 'foo'
     os.environ["JENKINS_PASSWORD"] = 'bar'
+    os.environ["CWR_TEST_TOKEN"] = 'fake_pass'
     try:
         yield
     finally:
         os.environ["JENKINS_USER"] = user if user else ''
         os.environ["JENKINS_PASSWORD"] = password if password else ''
+        os.environ["CWR_TEST_TOKEN"] = cwr_token if cwr_token else ''
