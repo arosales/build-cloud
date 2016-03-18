@@ -1,1 +1,3 @@
 bundle: cs:git
+bundle_name: git
+bundle_file:
