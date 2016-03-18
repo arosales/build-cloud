@@ -38,7 +38,7 @@ class TestSchedule(TestCase):
             args = Namespace(controllers=['default-aws'])
             parameters = make_parameters(test_plan, args)
             expected = {
-                'controllers': ['default-aws'],
+                'controllers': 'default-aws',
                 'bundle_name': 'make_life_easy',
                 'test_plan': test_plan}
             self.assertEqual(parameters, expected)
@@ -53,10 +53,10 @@ class TestSchedule(TestCase):
             self.fake_parameters(test_dir, 3, ext='.py')
             parameters = list(make_jobs(args))
             expected = [
-                {'controllers': ['default-aws'],
+                {'controllers': 'default-aws',
                  'bundle_name': 'make_life_easy',
                  'test_plan': test_plan},
-                {'controllers': ['default-aws'],
+                {'controllers': 'default-aws',
                  'bundle_name': 'make_life_easy',
                  'test_plan': test_plan_2}]
             self.assertItemsEqual(parameters, expected)
@@ -81,28 +81,31 @@ class TestSchedule(TestCase):
 
     def test_build_jobs_credentials(self):
         credentials = Credentials('joe', 'pass')
+        args = Namespace(cwr_test_token='fake')
         params = [
-            {'controllers': ['default-aws'],
+            {'controllers': 'default-aws',
              'bundle_name': 'make_life_easy',
              'test_plan': 'test_plan'},
-            {'controllers': ['default-aws'],
+            {'controllers': 'default-aws',
              'bundle_name': 'made life easy',
              'test_plan': 'test_plan_2'}]
         with patch('buildcloud.schedule_cwr_jobs.Jenkins',
                    autospec=True) as jenkins_mock:
-            build_jobs(credentials, params)
+            build_jobs(credentials, params, args)
         jenkins_mock.assert_called_once_with(
-            'http://localhost:8080', 'joe', 'pass')
+            'http://juju-ci.vapour.ws:8080', 'joe', 'pass')
         calls = [
             call('cwr-test',
-                 {'controllers': ['default-aws'],
+                 {'controllers': 'default-aws',
                   'bundle_name': 'make_life_easy',
-                  'test_plan': 'test_plan'}),
+                  'test_plan': 'test_plan'},
+                 token='fake'),
             call('cwr-test',
-                 {'controllers': ['default-aws'],
+                 {'controllers': 'default-aws',
                   'bundle_name': 'made life easy',
-                  'test_plan': 'test_plan_2'})]
-        self.assertEqual(
+                  'test_plan': 'test_plan_2'},
+                 token='fake')]
+        self.assertItemsEqual(
             jenkins_mock.return_value.build_job.call_args_list, calls)
 
 

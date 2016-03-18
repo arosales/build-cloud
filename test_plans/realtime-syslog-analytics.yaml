@@ -2,5 +2,5 @@ bundle: bundle:realtime-syslog-analytics
 benchmark:
     plugin:
         terasort
-bundle_name: bundle:realtime-syslog-analytics
-
+bundle_name: realtime-syslog-analytics
+bundle_file: bundle.yaml

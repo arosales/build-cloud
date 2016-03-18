@@ -40,7 +40,7 @@ def make_parameters(test_plan, args):
         plan = yaml.load(f)
     parameters = {
         'test_plan': test_plan,
-        'controllers': args.controllers,
+        'controllers': " ".join(args.controllers),
         'bundle_name': plan['bundle_name'],
         'bundle_file': plan.get('bundle_file')
     }
@@ -65,17 +65,17 @@ def get_credentials(args):
     return Credentials(args.user, args.password)
 
 
-def build_jobs(credentials, jobs):
-    jenkins = Jenkins('http://localhost:8080', *credentials)
+def build_jobs(credentials, jobs, args):
+    jenkins = Jenkins('http://juju-ci.vapour.ws:8080', *credentials)
     for job in jobs:
-        jenkins.build_job('cwr-test', job)
+        jenkins.build_job('cwr-test', job, token=args.cwr_test_token)
 
 
 def main():
     args = parse_args()
     credentials = get_credentials(args)
     jobs = make_jobs(args)
-    build_jobs(credentials, jobs)
+    build_jobs(credentials, jobs, args)
 
 
 if __name__ == '__main__':
