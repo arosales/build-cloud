@@ -1,0 +1,6 @@
+bundle: bundle:apache-core-batch-processing
+benchmark:
+    plugin:
+        terasort
+bundle_name: apache-core-batch-processing
+bundle_file: bundle.yaml
