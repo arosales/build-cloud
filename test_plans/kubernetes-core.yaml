@@ -1,0 +1,2 @@
+bundle: bundle:~containers/kubernetes-core
+bundle_name: kubernetes-core
